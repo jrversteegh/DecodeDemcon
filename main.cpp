@@ -1,28 +1,27 @@
+/**
+ * DecodeDemcon - Cellular Automata
+
+ * @author Jaap Versteegh
+ * @email jaap.versteegh@demcon.com
+ */
+
 #include <iostream>
 #include <vector>
 
-void printGeneration(std::vector<bool> const aGeneration);
+#include "boost/spirit/home/x3.hpp"
 
-int main()
-{
-    std::vector<bool> myGeneration;
-
-    printGeneration(myGeneration);
-    return 0;
-}
-
-void printGeneration(std::vector<bool> const aGeneration)
-{
-    for (bool i : aGeneration)
-    {
-        if (i)
-        {
-            std::cout << '*';
-        }
-        else
-        {
-            std::cout << ' ';
-        }
+void print_generation(std::vector<bool> const& generation) {
+    for (bool b : generation) {
+        std::cout << b ? '*': ' ';
     }
     std::cout << std::endl;
 }
+
+int main()
+{
+    std::vector<bool> generation;
+
+    print_generation(generation);
+    return 0;
+}
+
