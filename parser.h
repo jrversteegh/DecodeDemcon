@@ -40,13 +40,16 @@ namespace x3 = boost::spirit::x3;
 // Abstract Syntax Tree definition: a structure for our complete input
 namespace ast {
 
-struct RuleA: x3::position_tagged { };
+struct RuleA: x3::position_tagged {};
 
-struct RuleB: x3::position_tagged { };
+struct RuleB: x3::position_tagged {};
 
 struct RuleU: x3::position_tagged {
     using value_type = bool;
     std::vector<value_type> bits;
+    bool empty() const {
+        return bits.empty();
+    }
 };
 
 struct RuleR: x3::position_tagged {
@@ -135,12 +138,16 @@ struct Error_handler
 
 using x3::int_;
 using x3::bool_;
+using x3::ascii::space;
 using x3::int_parser;
 using x3::uint_parser;
 using x3::omit;
 using x3::repeat;
+using x3::expect;
+using x3::no_skip;
+using x3::lexeme;
 
-struct Pos_class;
+
 struct Bit_class;
 struct Byte_class;
 struct RuleA_class;
@@ -152,19 +159,19 @@ struct Size_class;
 struct Init_class;
 struct Input_class;
 
-x3::rule<Pos_class, int> const Pos = "positive int: 1-maxint";
+x3::rule<class Pos, int> const Pos = "positive int: 1-maxint";
+x3::rule<class Space> const Space = "white space";
 x3::rule<Bit_class, bool> const Bit = "bit: 0 | 1 | true | false";
 x3::rule<Byte_class, unsigned char> const Byte = "byte: 0-255";
 x3::rule<RuleA_class, ast::RuleA> const RuleA = "rule A: A";
 x3::rule<RuleB_class, ast::RuleB> const RuleB = "rule B: B";
-x3::rule<RuleU_class, ast::RuleU> const RuleU = "rule U: U 8(space bit)";
+x3::rule<RuleU_class, ast::RuleU> const RuleU = "rule U: U 8(bit) space";
 x3::rule<RuleR_class, ast::RuleR> const RuleR = "rule R: R byte";
 x3::rule<Rule_class, ast::Rule> const Rule = "rule: A | B | U | R";
 x3::rule<Size_class, ast::Size> const Size = "size: int int";
 x3::rule<Init_class, ast::Init> const Init = "init: init_start *int init_end";
 x3::rule<Input_class, ast::Input> const Input = "input: rule size init";
 
-struct Pos_class: x3::annotate_on_success {};
 struct Bit_class: x3::annotate_on_success {};
 struct Byte_class: x3::annotate_on_success {};
 struct RuleA_class: x3::annotate_on_success {};
@@ -177,17 +184,18 @@ struct Init_class: x3::annotate_on_success {};
 struct Input_class: Error_handler, x3::annotate_on_success {};
 
 static auto const Pos_def = uint_parser<unsigned, 10>();
+static auto const Space_def = no_skip[omit[+space]];
 static auto const Bit_def = int_parser<bool, 2, 1, 1>() | bool_;
 static auto const Byte_def = uint_parser<unsigned char, 10>();
 static auto const RuleA_def = omit['A'];
 static auto const RuleB_def = omit['B'];
-static auto const RuleU_def = omit['U'] > repeat(8)[Bit];
+static auto const RuleU_def = omit['U'] > repeat(8)[expect[Bit]] > Space;
 static auto const RuleR_def = omit['R'] > Byte;
 static auto const Rule_def = RuleA | RuleB | RuleU | RuleR;
 static auto const Size_def = Pos > Pos;
 static auto const Init_def = "init_start" > *int_ > "init_end";
-static auto const Input_def = "" > Rule > Size > Init;
-BOOST_SPIRIT_DEFINE(Pos, Bit, Byte, RuleA, RuleB, RuleU, RuleR, Rule, Size, Init, Input);
+static auto const Input_def = expect[Rule] > Size > Init;
+BOOST_SPIRIT_DEFINE(Pos, Space, Bit, Byte, RuleA, RuleB, RuleU, RuleR, Rule, Size, Init, Input);
 
 }  // namespace parser
 
@@ -201,6 +209,7 @@ Input parse_input_string(const std::string& input_string) {
     using x3::ascii::space;
     using x3::phrase_parse;
     using x3::with;
+    using x3::expect;
     using x3::error_handler_tag;
     using iterator_type = std::string::const_iterator;
     using error_handler_type = x3::error_handler<iterator_type>;
@@ -211,7 +220,7 @@ Input parse_input_string(const std::string& input_string) {
     error_handler_type error_handler(iter, end, error_message);
     auto const parser =
         with<error_handler_tag>(std::ref(error_handler)) [
-            "" > parser::Input
+            expect[parser::Input]
         ];
 
     Input result;
