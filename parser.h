@@ -20,28 +20,36 @@
  * simple input, but was done rather as an exercise.
  */
 #include <stdexcept>
+#include <sstream>
 
 #include <boost/spirit/home/x3.hpp>
+#include <boost/spirit/home/x3/numeric/uint.hpp>
 #include <boost/spirit/home/x3/support/ast/variant.hpp>
+#include <boost/spirit/home/x3/support/ast/position_tagged.hpp>
+#include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
+#include <boost/spirit/home/x3/support/utility/annotate_on_success.hpp>
 #include <boost/variant.hpp>
 #include <boost/fusion/adapted/struct/adapt_struct.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
+
+#define FMT_HEADER_ONLY
+#include <fmt/format.h>
 
 namespace x3 = boost::spirit::x3;
 
 // Abstract Syntax Tree definition: a structure for our complete input
 namespace ast {
 
-struct RuleA { };
+struct RuleA: x3::position_tagged { };
 
-struct RuleB { };
+struct RuleB: x3::position_tagged { };
 
-struct RuleU {
+struct RuleU: x3::position_tagged {
     using value_type = bool;
     std::vector<value_type> bits;
 };
 
-struct RuleR {
+struct RuleR: x3::position_tagged {
     int number;
 };
 
@@ -77,18 +85,18 @@ struct Rule: x3::variant<RuleA, RuleB, RuleU, RuleR> {
 };
 
 
-struct Size {
+struct Size: x3::position_tagged {
     int width;
     int generations;
 };
 
 
-struct Init {
+struct Init: x3::position_tagged {
     std::vector<int> cells;
 };
 
 
-struct Input {
+struct Input: x3::position_tagged {
     Rule rule;
     Size size;
     Init init;
@@ -98,7 +106,7 @@ struct Input {
 
 
 // Tell fusion about our structs, this allows the parser to access
-// the structs like an indexable array essentially
+// the structs like a tuple
 BOOST_FUSION_ADAPT_STRUCT(ast::RuleA)
 BOOST_FUSION_ADAPT_STRUCT(ast::RuleB)
 BOOST_FUSION_ADAPT_STRUCT(ast::RuleU, bits)
@@ -109,34 +117,79 @@ BOOST_FUSION_ADAPT_STRUCT(ast::Input, rule, size, init)
 
 
 // Parser grammar
-namespace grammar {
-    using x3::int_;
-    using x3::bool_;
-    using x3::int_parser;
-    using x3::omit;
-    using x3::repeat;
+namespace parser {
 
-    static x3::rule<class RuleA, ast::RuleA> RuleA = "RuleA";
-    static x3::rule<class RuleB, ast::RuleB> RuleB = "RuleB";
-    static x3::rule<class RuleU, ast::RuleU> RuleU = "RuleU";
-    static x3::rule<class RuleR, ast::RuleR> RuleR = "RuleR";
-    static x3::rule<class Rule, ast::Rule> Rule = "Rule";
-    static x3::rule<class Size, ast::Size> Size = "Size";
-    static x3::rule<class Init, ast::Init> Init = "Init";
+struct Error_handler
+{
+    template <typename Iterator, typename Exception, typename Context>
+    x3::error_handler_result on_error(
+        Iterator& first, Iterator const& last
+      , Exception const& x, Context const& context)
+    {
+        auto& error_handler = x3::get<x3::error_handler_tag>(context).get();
+        std::string message = "Error. Expecting: " + x.which() + " here:";
+        error_handler(x.where(), message);
+        return x3::error_handler_result::fail;
+    }
+};
 
-    static auto const bit_ = int_parser<bool, 2, 1, 1>();
-    static auto const uint8_t_ = int_parser<unsigned char, 10, 1, 3>();
-    static auto const RuleA_def = omit['A'];
-    static auto const RuleB_def = omit['B'];
-    static auto const RuleU_def = 'U' >> repeat(8)[bit_ | bool_];
-    static auto const RuleR_def = 'R' >> uint8_t_;
-    static auto const Rule_def = RuleA | RuleB | RuleU | RuleR;
-    static auto const Size_def = int_ >> int_;
-    static auto const Init_def = "init_start" >> *int_ >> "init_end";
-    static auto const Input = Rule >> Size >> Init;
-    BOOST_SPIRIT_DEFINE(RuleA, RuleB, RuleU, RuleR, Rule, Size, Init);
-}  // namespace grammar
+using x3::int_;
+using x3::bool_;
+using x3::int_parser;
+using x3::uint_parser;
+using x3::omit;
+using x3::repeat;
 
+struct Pos_class;
+struct Bit_class;
+struct Byte_class;
+struct RuleA_class;
+struct RuleB_class;
+struct RuleU_class;
+struct RuleR_class;
+struct Rule_class;
+struct Size_class;
+struct Init_class;
+struct Input_class;
+
+x3::rule<Pos_class, int> const Pos = "positive int: 1-maxint";
+x3::rule<Bit_class, bool> const Bit = "bit: 0 | 1 | true | false";
+x3::rule<Byte_class, unsigned char> const Byte = "byte: 0-255";
+x3::rule<RuleA_class, ast::RuleA> const RuleA = "rule A: A";
+x3::rule<RuleB_class, ast::RuleB> const RuleB = "rule B: B";
+x3::rule<RuleU_class, ast::RuleU> const RuleU = "rule U: U 8(space bit)";
+x3::rule<RuleR_class, ast::RuleR> const RuleR = "rule R: R byte";
+x3::rule<Rule_class, ast::Rule> const Rule = "rule: A | B | U | R";
+x3::rule<Size_class, ast::Size> const Size = "size: int int";
+x3::rule<Init_class, ast::Init> const Init = "init: init_start *int init_end";
+x3::rule<Input_class, ast::Input> const Input = "input: rule size init";
+
+struct Pos_class: x3::annotate_on_success {};
+struct Bit_class: x3::annotate_on_success {};
+struct Byte_class: x3::annotate_on_success {};
+struct RuleA_class: x3::annotate_on_success {};
+struct RuleB_class: x3::annotate_on_success {};
+struct RuleU_class: x3::annotate_on_success {};
+struct RuleR_class: x3::annotate_on_success {};
+struct Rule_class: x3::annotate_on_success {};
+struct Size_class: x3::annotate_on_success {};
+struct Init_class: x3::annotate_on_success {};
+struct Input_class: Error_handler, x3::annotate_on_success {};
+
+static auto const Pos_def = uint_parser<unsigned, 10>();
+static auto const Bit_def = int_parser<bool, 2, 1, 1>() | bool_;
+static auto const Byte_def = uint_parser<unsigned char, 10>();
+static auto const RuleA_def = omit['A'];
+static auto const RuleB_def = omit['B'];
+static auto const RuleU_def = omit['U'] > repeat(8)[Bit];
+static auto const RuleR_def = omit['R'] > Byte;
+static auto const Rule_def = RuleA | RuleB | RuleU | RuleR;
+static auto const Size_def = Pos > Pos;
+static auto const Init_def = "init_start" > *int_ > "init_end";
+static auto const Input_def = "" > Rule > Size > Init;
+BOOST_SPIRIT_DEFINE(Pos, Bit, Byte, RuleA, RuleB, RuleU, RuleR, Rule, Size, Init, Input);
+
+}  // namespace parser
 
 
 using Input = ast::Input;
@@ -147,15 +200,30 @@ using Input = ast::Input;
 Input parse_input_string(const std::string& input_string) {
     using x3::ascii::space;
     using x3::phrase_parse;
+    using x3::with;
+    using x3::error_handler_tag;
+    using iterator_type = std::string::const_iterator;
+    using error_handler_type = x3::error_handler<iterator_type>;
 
-    Input result;
     auto iter = input_string.begin();
     auto const end = input_string.end();
-    auto const parser = grammar::Input;
+    std::stringstream error_message;
+    error_handler_type error_handler(iter, end, error_message);
+    auto const parser =
+        with<error_handler_tag>(std::ref(error_handler)) [
+            "" > parser::Input
+        ];
 
-    bool r = phrase_parse(iter, end, parser, space, result);
-    if (!r || iter != end) {
-        throw std::runtime_error("Parse error");
+    Input result;
+    try {
+        bool r = phrase_parse(iter, end, parser, space, result);
+        if (!r || iter != end) {
+            // This shouldn't happen: all parser error should be expectation errors
+            throw std::runtime_error("Error parsing.");
+        }
+    }
+    catch (x3::expectation_failure<iterator_type>& e) {
+        throw std::runtime_error(error_message.str());
     }
     result.rule.set_number();
     return result;

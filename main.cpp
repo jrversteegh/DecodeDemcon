@@ -1,6 +1,13 @@
 /**
  * DecodeDemcon - Cellular Automata
  *
+ * Actions:
+ * - Get input from stdin
+ * - Initialize first generation from input
+ * - Evaluate and print next generations according
+ *   to rule.
+ *
+ *
  * @author Jaap Versteegh
  * @email jaap.versteegh@demcon.com
  */
@@ -58,7 +65,10 @@ Generation init_generation(const Input& input) {
 
 /**
  * Iterate a view of "Size" bits over a larger container of values
- * that can be cast to "bool"
+ * that can be cast to "bool". This is generalization of the
+ * "left,cell,right" view on a generation that would easily allow
+ * e.g. automata that have a rule based on more than just 2
+ * neighbours.
  */
 template <class Container, int Size=3>
 struct BitSetIter {
@@ -133,6 +143,10 @@ int main() {
     catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
         return 1;
+    }
+    catch (...) {
+        std::cerr << "Unknown exception" << std::endl;
+        return 2;
     }
 }
 

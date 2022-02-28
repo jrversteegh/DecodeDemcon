@@ -1,6 +1,4 @@
-Implementation of DecodeDemcon exercise/challenge by Jaap Versteegh, DAM Delft.
-Challenge described here:
-https://mailing.demcon.com/lp/decode-demcon-linear-cellular-automata
+Implementation of [DecodeDemcon cellular automata exercise/challenge](https://mailing.demcon.com/lp/decode-demcon-linear-cellular-automata).
 
 This is a C++ implementation.
 
@@ -22,4 +20,4 @@ If you don't have boost and/or fmt installed, please clone with submodules:
 
 Running `make rule_<xxx>` evaluates a specific rule, where `rule_A` and `rule_B` will
 work and `make rule_30` is most interesting for obvious reasons, while `make test`
-will run a parser test along with some rule outputs.
+will run some more rule outputs as well as parser tests.
