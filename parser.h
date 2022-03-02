@@ -130,7 +130,7 @@ struct Error_handler
       , Exception const& x, Context const& context)
     {
         auto& error_handler = x3::get<x3::error_handler_tag>(context).get();
-        std::string message = "Error. Expecting: " + x.which() + " here:";
+        std::string message = "Error. Expecting <" + x.which() + "> here:";
         error_handler(x.where(), message);
         return x3::error_handler_result::fail;
     }
