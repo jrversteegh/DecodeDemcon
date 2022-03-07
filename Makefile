@@ -35,49 +35,49 @@ rule_%: $(EXE)
 
 invalid_rule:
 	@echo
-	@echo "Invalid rule input:"
+	@echo "Test invalid rule input:"
 	echo "Z 11 10 init_start 6 init_end" | ./$(EXE) || :
 
 invalid_size:
 	@echo
-	@echo "Invalid size input:"
+	@echo "Test invalid size input (not a number):"
 	echo "A 11 A init_start 6 init_end" | ./$(EXE) || :
-	@echo "Invalid size input:"
+	@echo "Test Invalid size input (negative):"
 	echo "A 11 -1 init_start 6 init_end" | ./$(EXE) || :
 
 missing_init:
 	@echo
-	@echo "Missing init input:"
+	@echo "Test missing init input:"
 	echo "A 11 10" | ./$(EXE) || :
 
 invalid_init_start:
 	@echo
-	@echo "Invalid init start:"
+	@echo "Test invalid init start:"
 	echo "A 11 10 init_starX 6 init_end" | ./$(EXE) || :
 
 invalid_init_end:
 	@echo
-	@echo "Invalid init end:"
+	@echo "Test invalid init end:"
 	echo "A 11 10 init_start 6 init_enX" | ./$(EXE) || :
 
 invalid_r_rule:
 	@echo
-	@echo "Invalid R rule:"
+	@echo "Test invalid R rule:"
 	echo "R 256 11 10 init_start 6 init_end" | ./$(EXE) || :
 
 invalid_u_rule_bit:
 	@echo
-	@echo "Invalid U rule bit:"
+	@echo "Test invalid U rule bit:"
 	echo "U 0 0 0 1 2 0 0 0 11 10 init_start 6 init_end" | ./$(EXE) || :
 
 invalid_u_rule_size:
 	@echo
-	@echo "Invalid U rule size:"
+	@echo "Test invalid U rule size:"
 	echo "U 0 0 0 1 0 0 0 11 10 init_start 6 init_end" | ./$(EXE) || :
 
 invalid_size_size:
 	@echo
-	@echo "Invalid size size:"
+	@echo "Test invalid size size:"
 	echo "U 0 0 0 1 0 0 0 1 10 init_start 6 init_end" | ./$(EXE) || :
 
 invalid_input: invalid_rule invalid_size missing_init invalid_init_start invalid_init_end invalid_r_rule invalid_u_rule_bit invalid_u_rule_size invalid_size_size
