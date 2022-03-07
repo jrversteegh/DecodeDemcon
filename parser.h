@@ -16,6 +16,19 @@
  * the 8 bits in the "U" rule specification and was added for
  * convencience.
  *
+ * This grammar is being parsed using Spirit X3 using roughly a five
+ * stage process.
+ * - Create an AST: define the structure(s) of the input.
+ * - Fuse the AST to make it accessible to the parser. This is done
+ *   with Boost::Fusion. It essentially creates array like
+ *   interfaces for the AST structs.
+ * - Link syntactic elements to parts of the AST.
+ * - Define the expected occurence of syntactic elements in the
+ *   input: the grammar.
+ * - Do the parse! ..with a provided error handler, so we can tell
+ *   the user what the parser potentially didn't like about their
+ *   input.
+ *
  * Note that this implementation is obviously overkill for this
  * simple input, but was done rather as an exercise.
  */
@@ -119,7 +132,6 @@ BOOST_FUSION_ADAPT_STRUCT(ast::Init, cells)
 BOOST_FUSION_ADAPT_STRUCT(ast::Input, rule, size, init)
 
 
-// Parser grammar
 namespace parser {
 
 struct Error_handler
@@ -159,6 +171,8 @@ struct Size_class;
 struct Init_class;
 struct Input_class;
 
+// Link syntactic elements to AST structs with "rules"
+
 x3::rule<class Pos, int> const Pos = "positive int: 1-maxint";
 x3::rule<class Space> const Space = "white space";
 x3::rule<Bit_class, bool> const Bit = "bit: 0 | 1 | true | false";
@@ -182,6 +196,8 @@ struct Rule_class: x3::annotate_on_success {};
 struct Size_class: x3::annotate_on_success {};
 struct Init_class: x3::annotate_on_success {};
 struct Input_class: Error_handler, x3::annotate_on_success {};
+
+// Define parser grammar!
 
 static auto const Pos_def = uint_parser<unsigned, 10>();
 static auto const Space_def = no_skip[omit[+space]];
